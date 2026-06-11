@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Deteksi Kematangan Buah Naga</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero">
+        <div>
+          <p class="eyebrow">HSV Classifier Python 3.14</p>
+          <h1>Deteksi Kematangan Buah Naga</h1>
+          <p class="lead">Unggah foto buah naga untuk membaca status matang, terlalu matang, atau busuk berdasarkan model fitur warna HSV dari dataset lokal.</p>
+        </div>
+        <div class="model-state {{ 'ready' if model_ready else 'missing' }}">
+          {{ 'Model siap digunakan' if model_ready else 'Model belum dilatih' }}
+        </div>
+      </section>
+
+      <section class="workspace">
+        <form id="uploadForm" class="panel">
+          <label class="dropzone" for="fileInput">
+            <input id="fileInput" name="file" type="file" accept="image/jpeg,image/png,image/webp">
+            <span class="drop-title">Pilih gambar buah naga</span>
+            <span class="drop-hint">JPG, PNG, JPEG, atau WEBP</span>
+          </label>
+          <button type="submit">Deteksi Sekarang</button>
+          <p id="message" class="message"></p>
+        </form>
+
+        <section class="result">
+          <div class="preview">
+            <img id="previewImage" alt="">
+          </div>
+          <div class="summary">
+            <p class="small-label">Hasil Prediksi</p>
+            <h2 id="resultLabel">Belum ada gambar</h2>
+            <p id="resultStatus" class="status-text">Unggah gambar untuk mulai mendeteksi.</p>
+            <div class="confidence">
+              <span>Confidence Model</span>
+              <strong id="confidenceValue">0%</strong>
+            </div>
+          </div>
+        </section>
+      </section>
+
+      <section class="metrics">
+        <div>
+          <span>Hue</span>
+          <strong id="hueValue">-</strong>
+        </div>
+        <div>
+          <span>Saturation</span>
+          <strong id="saturationValue">-</strong>
+        </div>
+        <div>
+          <span>Value</span>
+          <strong id="valueValue">-</strong>
+        </div>
+        <div>
+          <span>Area Merah-Magenta</span>
+          <strong id="areaValue">-</strong>
+        </div>
+      </section>
+
+      <section class="probabilities">
+        <h2>Distribusi Kelas</h2>
+        <div id="probabilityList" class="bars"></div>
+      </section>
+    </main>
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+  </body>
+</html>

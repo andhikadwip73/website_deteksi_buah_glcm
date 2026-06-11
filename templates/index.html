@@ -1,75 +1,200 @@
 <!doctype html>
 <html lang="id">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Deteksi Kematangan Buah Naga</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
-  </head>
-  <body>
-    <main class="shell">
-      <section class="hero">
-        <div>
-          <p class="eyebrow">HSV Classifier Python 3.14</p>
-          <h1>Deteksi Kematangan Buah Naga</h1>
-          <p class="lead">Unggah foto buah naga untuk membaca status matang, terlalu matang, atau busuk berdasarkan model fitur warna HSV dari dataset lokal.</p>
-        </div>
-        <div class="model-state {{ 'ready' if model_ready else 'missing' }}">
-          {{ 'Model siap digunakan' if model_ready else 'Model belum dilatih' }}
-        </div>
-      </section>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Sistem deteksi kematangan buah naga berbasis HSV dan Machine Learning">
+  <title>Deteksi Kematangan Buah Naga</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
 
-      <section class="workspace">
-        <form id="uploadForm" class="panel">
-          <label class="dropzone" for="fileInput">
-            <input id="fileInput" name="file" type="file" accept="image/jpeg,image/png,image/webp">
-            <span class="drop-title">Pilih gambar buah naga</span>
-            <span class="drop-hint">JPG, PNG, JPEG, atau WEBP</span>
-          </label>
-          <button type="submit">Deteksi Sekarang</button>
-          <p id="message" class="message"></p>
-        </form>
+  <div class="page-bg" aria-hidden="true"></div>
 
-        <section class="result">
-          <div class="preview">
-            <img id="previewImage" alt="">
+  <header class="site-header">
+    <a class="brand" href="#beranda" aria-label="Dragon Fruit AI">
+      <span class="brand-mark">DF</span>
+      <span>Dragon Fruit AI</span>
+    </a>
+
+    <nav class="nav-links" aria-label="Navigasi utama">
+      <a href="#deteksi">Deteksi</a>
+    </nav>
+
+    <div class="model-state {{ 'ready' if model_ready else 'missing' }}">
+      <span class="state-dot"></span>
+      {{ 'Model siap' if model_ready else 'Model belum dilatih' }}
+    </div>
+  </header>
+
+  <main>
+
+    <section class="hero-section" id="beranda">
+      <div class="hero-inner">
+
+        <div class="hero-copy">
+          <p class="eyebrow">HSV Maturity Classifier</p>
+
+          <h1>Analisis Buah Naga Lebih Cepat dan Akurat</h1>
+
+          <p class="lead">
+            Unggah foto buah naga dan sistem akan membaca pola warna HSV
+            untuk menentukan tingkat kematangan buah secara otomatis.
+          </p>
+
+          <div class="hero-actions">
+            <a class="primary-link" href="#deteksi">Mulai Deteksi</a>
+            <a class="ghost-link" href="#deteksi">Lihat Deteksi</a>
           </div>
-          <div class="summary">
-            <p class="small-label">Hasil Prediksi</p>
-            <h2 id="resultLabel">Belum ada gambar</h2>
-            <p id="resultStatus" class="status-text">Unggah gambar untuk mulai mendeteksi.</p>
-            <div class="confidence">
-              <span>Confidence Model</span>
-              <strong id="confidenceValue">0%</strong>
+
+          <div class="hero-stats">
+            <span>HSV</span>
+            <span>JPG PNG WEBP</span>
+            <span>Maks 8 MB</span>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <section class="app-shell" id="deteksi">
+
+      <div class="section-heading">
+        <p class="small-label">Deteksi</p>
+        <h2>Uji Foto Buah Naga</h2>
+        <p>
+          Pilih gambar yang jelas agar warna kulit dan daging buah
+          dapat terbaca lebih stabil.
+        </p>
+      </div>
+
+      <section class="detector-grid">
+
+        <section class="scan-preview">
+          <div class="preview">
+            <img
+              id="previewImage"
+              {% if sample_image_url %}src="{{ sample_image_url }}"{% endif %}
+              alt="Preview Buah Naga"
+            >
+
+            <div class="preview-shade"></div>
+
+            <div class="preview-caption">
+              <span>Preview</span>
+              <strong id="previewCaption">Contoh Dataset</strong>
             </div>
           </div>
         </section>
+
+        <section class="control-column">
+
+          <form id="uploadForm" class="upload-card">
+
+            <label class="dropzone" for="fileInput">
+              <input
+                id="fileInput"
+                name="file"
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+              >
+
+              <span class="drop-icon" aria-hidden="true"></span>
+              <span class="drop-title">Pilih Foto Buah Naga</span>
+              <span class="drop-hint">
+                JPG, JPEG, PNG, WEBP • Maksimal 8 MB
+              </span>
+            </label>
+
+            <button type="submit">Deteksi Sekarang</button>
+
+            <p id="message" class="message" aria-live="polite"></p>
+
+          </form>
+
+          <section
+            class="result-card is-empty"
+            data-result-card
+            aria-live="polite"
+          >
+            <div>
+              <p class="small-label">Hasil Prediksi</p>
+              <h2 id="resultLabel">Belum Ada Gambar</h2>
+
+              <p id="resultStatus" class="status-text">
+                Pilih foto untuk melihat status kematangan.
+              </p>
+            </div>
+
+            <div id="scoreRing" class="score-ring" style="--score:0">
+              <strong id="confidenceValue">0%</strong>
+              <span>Confidence</span>
+            </div>
+          </section>
+
+        </section>
+
       </section>
 
       <section class="metrics">
-        <div>
+
+        <div class="metric-card">
           <span>Hue</span>
           <strong id="hueValue">-</strong>
         </div>
-        <div>
+
+        <div class="metric-card">
           <span>Saturation</span>
           <strong id="saturationValue">-</strong>
         </div>
-        <div>
+
+        <div class="metric-card">
           <span>Value</span>
           <strong id="valueValue">-</strong>
         </div>
-        <div>
+
+        <div class="metric-card">
           <span>Area Merah-Magenta</span>
           <strong id="areaValue">-</strong>
         </div>
+
       </section>
 
       <section class="probabilities">
-        <h2>Distribusi Kelas</h2>
-        <div id="probabilityList" class="bars"></div>
+
+        <div class="section-heading compact">
+          <p class="small-label">Distribusi</p>
+          <h2>Probabilitas Kelas</h2>
+        </div>
+
+        <div id="probabilityList" class="bars">
+          <p class="empty-state">Belum ada data prediksi.</p>
+        </div>
+
       </section>
-    </main>
-    <script src="{{ url_for('static', filename='app.js') }}"></script>
-  </body>
+
+    </section>
+
+  </main>
+
+  <footer class="site-footer">
+
+    <div>
+      <a class="brand" href="#beranda" aria-label="Dragon Fruit AI">
+        <span class="brand-mark">DF</span>
+        <span>Dragon Fruit AI</span>
+      </a>
+
+      <p>
+        Sistem deteksi kematangan buah naga berbasis HSV dan Machine Learning.
+      </p>
+    </div>
+
+    <span>Dragon Fruit Maturity Detection System</span>
+
+  </footer>
+
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+
+</body>
 </html>

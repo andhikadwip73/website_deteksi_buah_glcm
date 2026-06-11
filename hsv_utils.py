@@ -1,62 +1,116 @@
 from colorsys import rgb_to_hsv
 from pathlib import Path
-
 from PIL import Image
 
+# Fitur yang digunakan model
+FEATURE_KEYS = [
+    "hue",
+    "saturation",
+    "value",
+    "red_magenta_area"
+]
 
-FEATURE_KEYS = ["hue", "saturation", "value", "red_magenta_area"]
-IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
+# Format gambar yang didukung
+IMAGE_EXTENSIONS = {
+    ".jpg",
+    ".jpeg",
+    ".png",
+    ".webp"
+}
 
 
-def image_files(directory):
-    directory = Path(directory)
+def image_files(folder):
+    """
+    Mengambil seluruh file gambar dalam folder dataset.
+    """
+
+    folder = Path(folder)
+
     return [
-        path
-        for path in directory.rglob("*")
-        if path.is_file() and path.suffix.lower() in IMAGE_EXTENSIONS
+        file
+        for file in folder.rglob("*")
+        if file.is_file()
+        and file.suffix.lower() in IMAGE_EXTENSIONS
     ]
 
 
-def calculate_hsv_features(image_path, max_size=128, pixel_step=3):
+def calculate_hsv_features(image_path):
+    """
+    Menghitung rata-rata HSV dan area merah-magenta.
+    """
+
     with Image.open(image_path) as img:
+
+        # Ubah ke RGB
         img = img.convert("RGB")
-        img.thumbnail((max_size, max_size))
-        pixels = list(img.getdata())[::pixel_step]
+
+        # Perkecil gambar agar lebih cepat diproses
+        img.thumbnail((128, 128))
+
+        # Ambil setiap 3 pixel
+        pixels = list(img.getdata())[::3]
 
     if not pixels:
-        raise ValueError("Gambar tidak memiliki pixel yang bisa dibaca.")
+        raise ValueError("Gambar tidak dapat dibaca.")
 
-    hue_total = 0.0
-    saturation_total = 0.0
-    value_total = 0.0
+    hue_total = 0
+    saturation_total = 0
+    value_total = 0
+
     red_magenta_count = 0
 
-    for red, green, blue in pixels:
-        hue, saturation, value = rgb_to_hsv(red / 255.0, green / 255.0, blue / 255.0)
-        hue_cv = hue * 179.0
-        saturation_cv = saturation * 255.0
-        value_cv = value * 255.0
+    for r, g, b in pixels:
 
-        hue_total += hue_cv
-        saturation_total += saturation_cv
-        value_total += value_cv
+        # RGB → HSV
+        h, s, v = rgb_to_hsv(
+            r / 255,
+            g / 255,
+            b / 255
+        )
 
-        if (hue_cv <= 12 or hue_cv >= 155) and saturation_cv >= 45 and value_cv >= 40:
+        # Skala OpenCV
+        h *= 179
+        s *= 255
+        v *= 255
+
+        hue_total += h
+        saturation_total += s
+        value_total += v
+
+        # Deteksi area merah-magenta
+        if (h <= 12 or h >= 155) and s >= 45 and v >= 40:
             red_magenta_count += 1
 
-    total = len(pixels)
+    total_pixels = len(pixels)
+
     return {
-        "hue": round(hue_total / total, 2),
-        "saturation": round(saturation_total / total, 2),
-        "value": round(value_total / total, 2),
-        "red_magenta_area": round((red_magenta_count / total) * 100, 2),
+        "hue": round(hue_total / total_pixels, 2),
+
+        "saturation": round(
+            saturation_total / total_pixels,
+            2
+        ),
+
+        "value": round(
+            value_total / total_pixels,
+            2
+        ),
+
+        "red_magenta_area": round(
+            (red_magenta_count / total_pixels) * 100,
+            2
+        )
     }
 
 
 def vector_from_features(features):
+    """
+    Normalisasi fitur ke rentang 0-1.
+    """
+
     return [
-        float(features["hue"]) / 179.0,
-        float(features["saturation"]) / 255.0,
-        float(features["value"]) / 255.0,
-        float(features["red_magenta_area"]) / 100.0,
+        features["hue"] / 179,
+        features["saturation"] / 255,
+        features["value"] / 255,
+        features["red_magenta_area"] / 100
     ]

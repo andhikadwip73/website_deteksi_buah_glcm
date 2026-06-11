@@ -1,145 +1,287 @@
 const form = document.getElementById("uploadForm");
 const fileInput = document.getElementById("fileInput");
 const message = document.getElementById("message");
+
 const previewImage = document.getElementById("previewImage");
+const previewCaption = document.getElementById("previewCaption");
+
+const resultCard = document.querySelector("[data-result-card]");
 const resultLabel = document.getElementById("resultLabel");
 const resultStatus = document.getElementById("resultStatus");
+
+const scoreRing = document.getElementById("scoreRing");
 const confidenceValue = document.getElementById("confidenceValue");
+
 const probabilityList = document.getElementById("probabilityList");
+
 const hueValue = document.getElementById("hueValue");
 const saturationValue = document.getElementById("saturationValue");
 const valueValue = document.getElementById("valueValue");
 const areaValue = document.getElementById("areaValue");
 
-const allowedExtensions = ["jpg", "jpeg", "png", "webp"];
-let previewUrl = "";
+const MAX_SIZE = 8 * 1024 * 1024;
+const ALLOWED = ["jpg", "jpeg", "png", "webp"];
+
+let previewUrl = null;
+
+
+/* =========================
+   Preview Gambar
+========================= */
 
 fileInput.addEventListener("change", () => {
-  const file = fileInput.files[0];
-  if (!file) return;
 
-  if (!isAllowedImage(file)) {
-    fileInput.value = "";
-    showMessage("Format file harus JPG, JPEG, PNG, atau WEBP.", "error");
-    return;
-  }
+    const file = fileInput.files[0];
 
-  if (previewUrl) {
-    URL.revokeObjectURL(previewUrl);
-  }
+    if (!file) return;
 
-  previewUrl = URL.createObjectURL(file);
-  previewImage.src = previewUrl;
-  previewImage.alt = file.name;
-  previewImage.style.display = "block";
-  showMessage(file.name);
-});
+    const ext = file.name.split(".").pop().toLowerCase();
 
-form.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  const button = form.querySelector("button");
-  const file = fileInput.files[0];
-
-  if (!file) {
-    showMessage("Pilih gambar terlebih dahulu.", "error");
-    return;
-  }
-
-  if (!isAllowedImage(file)) {
-    showMessage("Format file harus JPG, JPEG, PNG, atau WEBP.", "error");
-    return;
-  }
-
-  const formData = new FormData();
-  formData.append("file", file);
-  button.disabled = true;
-  button.textContent = "Menganalisis...";
-  showMessage("Menganalisis gambar...");
-
-  try {
-    const response = await fetch("/predict", {
-      method: "POST",
-      body: formData,
-    });
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.error || "Prediksi gagal.");
+    if (!ALLOWED.includes(ext)) {
+        showMessage(
+            "Format file harus JPG, JPEG, PNG, atau WEBP.",
+            "error"
+        );
+        fileInput.value = "";
+        return;
     }
 
-    renderResult(data);
-    showMessage(data.ready ? "Analisis selesai." : data.message);
-  } catch (error) {
-    showMessage(error.message, "error");
-  } finally {
-    button.disabled = false;
-    button.textContent = "Deteksi Sekarang";
-  }
+    if (file.size > MAX_SIZE) {
+        showMessage(
+            "Ukuran file maksimal 8 MB.",
+            "error"
+        );
+        fileInput.value = "";
+        return;
+    }
+
+    if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+    }
+
+    previewUrl = URL.createObjectURL(file);
+
+    previewImage.src = previewUrl;
+    previewImage.alt = file.name;
+
+    previewCaption.textContent = file.name;
+
+    showMessage(file.name);
 });
 
-function isAllowedImage(file) {
-  const extension = file.name.split(".").pop().toLowerCase();
-  return allowedExtensions.includes(extension);
+
+/* =========================
+   Submit
+========================= */
+
+form.addEventListener("submit", async (e) => {
+
+    e.preventDefault();
+
+    const file = fileInput.files[0];
+
+    if (!file) {
+        showMessage(
+            "Pilih gambar terlebih dahulu.",
+            "error"
+        );
+        return;
+    }
+
+    const button = form.querySelector("button");
+
+    const formData = new FormData();
+
+    formData.append("file", file);
+
+    button.disabled = true;
+    button.textContent = "Menganalisis...";
+
+    showMessage("Menganalisis gambar...");
+
+    try {
+
+        const response = await fetch("/predict", {
+            method: "POST",
+            body: formData
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(
+                data.error || "Prediksi gagal."
+            );
+        }
+
+        updateResult(data);
+
+        showMessage("Analisis selesai.");
+
+    } catch (error) {
+
+        showMessage(
+            error.message,
+            "error"
+        );
+
+    } finally {
+
+        button.disabled = false;
+        button.textContent = "Deteksi Sekarang";
+
+    }
+
+});
+
+
+/* =========================
+   Hasil Prediksi
+========================= */
+
+function updateResult(data) {
+
+    previewImage.src = data.image_url;
+
+    hueValue.textContent = data.hsv.hue;
+    saturationValue.textContent = data.hsv.saturation;
+    valueValue.textContent = data.hsv.value;
+
+    areaValue.textContent =
+        data.hsv.red_magenta_area + "%";
+
+    if (!data.ready) {
+
+        resultLabel.textContent =
+            "Model Belum Dilatih";
+
+        resultStatus.textContent =
+            data.message;
+
+        confidenceValue.textContent = "0%";
+
+        scoreRing.style.setProperty(
+            "--score",
+            0
+        );
+
+        return;
+    }
+
+    resultLabel.textContent =
+        data.label;
+
+    resultStatus.textContent =
+        data.status;
+
+    confidenceValue.textContent =
+        data.confidence + "%";
+
+    scoreRing.style.setProperty(
+        "--score",
+        data.confidence
+    );
+
+    previewCaption.textContent =
+        data.label;
+
+    updateCardColor(data.label);
+
+    updateProbabilities(
+        data.probabilities
+    );
 }
 
-function showMessage(text, type = "") {
-  message.textContent = text;
-  message.className = type ? `message ${type}` : "message";
+
+/* =========================
+   Warna Card
+========================= */
+
+function updateCardColor(label) {
+
+    resultCard.className =
+        "result-card";
+
+    const text =
+        label.toLowerCase();
+
+    if (text.includes("busuk")) {
+
+        resultCard.classList.add(
+            "is-rotten"
+        );
+
+    } else if (
+        text.includes("terlalu")
+    ) {
+
+        resultCard.classList.add(
+            "is-overripe"
+        );
+
+    } else {
+
+        resultCard.classList.add(
+            "is-ripe"
+        );
+
+    }
+
 }
 
-function renderResult(data) {
-  previewImage.src = data.image_url;
-  previewImage.alt = data.label || "Gambar buah naga";
-  previewImage.style.display = "block";
 
-  if (data.ready) {
-    resultLabel.textContent = data.label;
-    resultStatus.textContent = data.status;
-    confidenceValue.textContent = `${data.confidence}%`;
-    renderProbabilities(data.probabilities);
-  } else {
-    resultLabel.textContent = "Model belum dilatih";
-    resultStatus.textContent = "Fitur HSV sudah terbaca, tetapi model belum bisa memprediksi sampai training dijalankan.";
-    confidenceValue.textContent = "0%";
+/* =========================
+   Probabilitas
+========================= */
+
+function updateProbabilities(items) {
+
     probabilityList.innerHTML = "";
-  }
 
-  hueValue.textContent = data.hsv.hue;
-  saturationValue.textContent = data.hsv.saturation;
-  valueValue.textContent = data.hsv.value;
-  areaValue.textContent =
-    data.hsv.red_magenta_area === "-" ? "-" : `${data.hsv.red_magenta_area}%`;
+    items.forEach(item => {
+
+        const row =
+            document.createElement("div");
+
+        row.className =
+            "bar-row";
+
+        row.innerHTML = `
+            <span>${item.label}</span>
+
+            <div class="bar-track">
+                <div
+                    class="bar-fill"
+                    style="width:${item.confidence}%">
+                </div>
+            </div>
+
+            <strong>
+                ${item.confidence}%
+            </strong>
+        `;
+
+        probabilityList.appendChild(row);
+
+    });
+
 }
 
-function renderProbabilities(items) {
-  probabilityList.innerHTML = "";
-  items.forEach((item) => {
-    const row = document.createElement("div");
-    const label = document.createElement("span");
-    const track = document.createElement("div");
-    const fill = document.createElement("div");
-    const percent = document.createElement("strong");
-    const confidence = normalizeConfidence(item.confidence);
 
-    row.className = "bar-row";
-    label.textContent = item.label;
-    track.className = "bar-track";
-    fill.className = "bar-fill";
-    fill.style.width = `${confidence}%`;
-    percent.textContent = `${formatPercent(confidence)}%`;
+/* =========================
+   Pesan
+========================= */
 
-    track.appendChild(fill);
-    row.append(label, track, percent);
-    probabilityList.appendChild(row);
-  });
-}
+function showMessage(
+    text,
+    type = ""
+) {
 
-function normalizeConfidence(value) {
-  const number = Number(value);
-  if (!Number.isFinite(number)) return 0;
-  return Math.max(0, Math.min(100, number));
-}
+    message.textContent = text;
 
-function formatPercent(value) {
-  return Number(value.toFixed(2)).toString();
+    message.className =
+        type
+        ? `message ${type}`
+        : "message";
+
 }

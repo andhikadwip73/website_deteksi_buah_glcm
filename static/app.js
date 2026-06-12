@@ -14,20 +14,19 @@ const confidenceValue = document.getElementById("confidenceValue");
 
 const probabilityList = document.getElementById("probabilityList");
 
-const hueValue = document.getElementById("hueValue");
-const saturationValue = document.getElementById("saturationValue");
-const valueValue = document.getElementById("valueValue");
-const areaValue = document.getElementById("areaValue");
+const contrastValue = document.getElementById("contrastValue");
+const correlationValue = document.getElementById("correlationValue");
+const energyValue = document.getElementById("energyValue");
+const homogeneityValue = document.getElementById("homogeneityValue");
 
 const MAX_SIZE = 8 * 1024 * 1024;
 const ALLOWED = ["jpg", "jpeg", "png", "webp"];
 
 let previewUrl = null;
 
-
-/* =========================
-   Preview Gambar
-========================= */
+/* =====================================
+   PREVIEW GAMBAR
+===================================== */
 
 fileInput.addEventListener("change", () => {
 
@@ -63,20 +62,18 @@ fileInput.addEventListener("change", () => {
 
     previewImage.src = previewUrl;
     previewImage.alt = file.name;
-
     previewCaption.textContent = file.name;
 
     showMessage(file.name);
 });
 
+/* =====================================
+   SUBMIT
+===================================== */
 
-/* =========================
-   Submit
-========================= */
+form.addEventListener("submit", async (event) => {
 
-form.addEventListener("submit", async (e) => {
-
-    e.preventDefault();
+    event.preventDefault();
 
     const file = fileInput.files[0];
 
@@ -91,7 +88,6 @@ form.addEventListener("submit", async (e) => {
     const button = form.querySelector("button");
 
     const formData = new FormData();
-
     formData.append("file", file);
 
     button.disabled = true;
@@ -134,21 +130,28 @@ form.addEventListener("submit", async (e) => {
 
 });
 
-
-/* =========================
-   Hasil Prediksi
-========================= */
+/* =====================================
+   HASIL PREDIKSI
+===================================== */
 
 function updateResult(data) {
 
     previewImage.src = data.image_url;
 
-    hueValue.textContent = data.hsv.hue;
-    saturationValue.textContent = data.hsv.saturation;
-    valueValue.textContent = data.hsv.value;
+    if (data.features) {
 
-    areaValue.textContent =
-        data.hsv.red_magenta_area + "%";
+        contrastValue.textContent =
+            data.features.contrast;
+
+        correlationValue.textContent =
+            data.features.correlation;
+
+        energyValue.textContent =
+            data.features.energy;
+
+        homogeneityValue.textContent =
+            data.features.homogeneity;
+    }
 
     if (!data.ready) {
 
@@ -158,7 +161,8 @@ function updateResult(data) {
         resultStatus.textContent =
             data.message;
 
-        confidenceValue.textContent = "0%";
+        confidenceValue.textContent =
+            "0%";
 
         scoreRing.style.setProperty(
             "--score",
@@ -185,17 +189,18 @@ function updateResult(data) {
     previewCaption.textContent =
         data.label;
 
-    updateCardColor(data.label);
+    updateCardColor(
+        data.label
+    );
 
     updateProbabilities(
         data.probabilities
     );
 }
 
-
-/* =========================
-   Warna Card
-========================= */
+/* =====================================
+   WARNA HASIL
+===================================== */
 
 function updateCardColor(label) {
 
@@ -226,13 +231,11 @@ function updateCardColor(label) {
         );
 
     }
-
 }
 
-
-/* =========================
-   Probabilitas
-========================= */
+/* =====================================
+   PROBABILITAS
+===================================== */
 
 function updateProbabilities(items) {
 
@@ -264,13 +267,11 @@ function updateProbabilities(items) {
         probabilityList.appendChild(row);
 
     });
-
 }
 
-
-/* =========================
-   Pesan
-========================= */
+/* =====================================
+   PESAN
+===================================== */
 
 function showMessage(
     text,
@@ -281,7 +282,6 @@ function showMessage(
 
     message.className =
         type
-        ? `message ${type}`
-        : "message";
-
+            ? `message ${type}`
+            : "message";
 }
